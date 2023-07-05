@@ -81,7 +81,7 @@ class BiomeMap:
                     for k in [i - zoom, i, i + zoom, i + zoom * 2]:
                         for m in [j - zoom, j, j + zoom, j + zoom * 2]:
                             if 0 <= k <= self.MAP_LENGTH - zoom and 0 <= m <= self.MAP_LENGTH - zoom:
-                                self.map[k: k + zoom, m: m + zoom] = np.random.random() < self.ADD_LAND
+                                self.map[k: k + zoom, m: m + zoom] = (np.random.random() < self.ADD_LAND) * map_copy[i, j]
 
     def add_temperatures(self, zoom):
         options = [Terrain.Warm, Terrain.Cold, Terrain.Freezing]
