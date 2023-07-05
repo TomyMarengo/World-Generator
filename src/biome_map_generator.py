@@ -7,7 +7,7 @@ from enum import Enum
 
 class Terrain(Enum):
     Ocean = (0, '#010070')
-    Land = (1, '#8EB35F')
+    Temperature = (1, '#8EB35F')
     Warm = (2, '#FA9417')
     Cold = (3, '#056720')
     Freezing = (4, '#FFFFFF')
@@ -16,7 +16,7 @@ class Terrain(Enum):
 
 class BiomeMap:
     BE_LAND = 1 / 10
-    ADD_LAND = BE_LAND * 5
+    ADD_LAND = BE_LAND * 6
     REMOVE_OCEAN = 1 / 2
     BE_WARM = 4 / 6
     BE_COLD = 1 / 6
@@ -28,29 +28,26 @@ class BiomeMap:
         self.map = None
         self.steps = [
             # First
-            (f'Oceans (Zoom: {self.PIXEL_LENGTH})', self.oceans),
-            (f'First Islands (Zoom: {self.PIXEL_LENGTH})', self.islands, self.PIXEL_LENGTH),
+            (f'Oceans (ZoomX1: {self.PIXEL_LENGTH})', self.oceans),
+            (f'First Islands (ZoomX1: {self.PIXEL_LENGTH})', self.islands, self.PIXEL_LENGTH),
 
             # Zoom
-            (f'Add Islands (Zoom: {self.PIXEL_LENGTH // 2})', self.add_islands, self.PIXEL_LENGTH // 2),
+            (f'Add Islands (ZoomX2: {self.PIXEL_LENGTH // 2})', self.add_islands, self.PIXEL_LENGTH // 2),
 
             # Zoom
-            (f'Add Islands (Zoom: {self.PIXEL_LENGTH // 4})', self.add_islands, self.PIXEL_LENGTH // 4),
-            (f'Remove Too Much Ocean (Zoom: {self.PIXEL_LENGTH // 4})', self.remove_too_much_ocean,
+            (f'Add Islands (ZoomX3: {self.PIXEL_LENGTH // 4})', self.add_islands, self.PIXEL_LENGTH // 4),
+            (f'Add Islands (ZoomX3: {self.PIXEL_LENGTH // 4})', self.add_islands, self.PIXEL_LENGTH // 4),
+            (f'Remove Too Much Ocean (ZoomX3: {self.PIXEL_LENGTH // 4})', self.remove_too_much_ocean,
              self.PIXEL_LENGTH // 4),
-
-            # Zoom
-            (f'Add Islands (Zoom: {self.PIXEL_LENGTH // 8})', self.add_islands, self.PIXEL_LENGTH // 8),
-
-            # Zoom
-            (f'Add Islands (Zoom: {self.PIXEL_LENGTH // 16})', self.add_islands, self.PIXEL_LENGTH // 16),
-            (f'Add Deep Oceans (Zoom: {self.PIXEL_LENGTH // 16})', self.add_deep_ocean, self.PIXEL_LENGTH // 16),
-            (f'Add Temperatures (Zoom: {self.PIXEL_LENGTH // 16})', self.add_temperatures, self.PIXEL_LENGTH // 16)
-            #
-            # Change temperatures
+            (f'Add Temperatures (ZoomX3: {self.PIXEL_LENGTH // 4})', self.add_temperatures, self.PIXEL_LENGTH // 4),
+            (f'Add Islands (ZoomX3: {self.PIXEL_LENGTH // 4})', self.add_islands, self.PIXEL_LENGTH // 4),
+            (f'Change Temperatures (ZoomX3: {self.PIXEL_LENGTH // 4})', self.change_temperatures, self.PIXEL_LENGTH // 4),
             # Add biome variants
-            #
 
+            # Zoom x2
+            (f'Add Islands (ZoomX5: {self.PIXEL_LENGTH // 16})', self.add_islands, self.PIXEL_LENGTH // 16),
+            # Add mushroom island
+            (f'Add Deep Oceans (ZoomX5: {self.PIXEL_LENGTH // 16})', self.add_deep_ocean, self.PIXEL_LENGTH // 16),
         ]
 
     def generate(self, b_plot: bool):
@@ -72,7 +69,7 @@ class BiomeMap:
         for i in range(0, self.map.shape[0], zoom):
             for j in range(0, self.map.shape[1], zoom):
                 if np.random.random() < self.BE_LAND:
-                    self.map[i:i + zoom, j:j + zoom] = Terrain.Land.value[0]
+                    self.map[i:i + zoom, j:j + zoom] = Terrain.Temperature.value[0]
 
     def add_islands(self, zoom):
         # adds mistakes to islands
@@ -80,7 +77,7 @@ class BiomeMap:
 
         for i in range(0, self.map.shape[0], zoom * 2):
             for j in range(0, self.map.shape[1], zoom * 2):
-                if map_copy[i, j] == Terrain.Land.value[0]:
+                if map_copy[i, j] != Terrain.Ocean.value[0] and map_copy[i, j] != Terrain.DeepOcean.value[0]:
                     for k in [i - zoom, i, i + zoom, i + zoom * 2]:
                         for m in [j - zoom, j, j + zoom, j + zoom * 2]:
                             if 0 <= k <= self.MAP_LENGTH - zoom and 0 <= m <= self.MAP_LENGTH - zoom:
@@ -92,9 +89,24 @@ class BiomeMap:
 
         for i in range(0, self.map.shape[0], zoom):
             for j in range(0, self.map.shape[1], zoom):
-                if self.map[i, j] == Terrain.Land.value[0]:
+                if self.map[i, j] == Terrain.Temperature.value[0]:
                     terrain = random.choices(options, probs)[0]
                     self.map[i: i + zoom, j: j + zoom] = terrain.value[0]
+
+    def change_temperatures(self, zoom):
+        map_copy = np.copy(self.map)
+
+        for i in range(0, self.map.shape[0], zoom):
+            for j in range(0, self.map.shape[1], zoom):
+                if map_copy[i, j] == Terrain.Warm.value[0] \
+                        and not self.__verify_neighbors(map_copy, i, j, zoom, lambda x: x != Terrain.Cold.value[0] and x != Terrain.Freezing.value[0]):
+                    self.map[i: i + zoom, j: j + zoom] = Terrain.Temperature.value[0]
+                if map_copy[i, j] == Terrain.Freezing.value[0] \
+                        and not self.__verify_neighbors(map_copy, i, j, zoom,
+                                                        lambda x: x != Terrain.Warm.value[0] and x != Terrain.Temperature.value[0]):
+                    self.map[i: i + zoom, j: j + zoom] = Terrain.Cold.value[0]
+
+
 
     def remove_too_much_ocean(self, zoom):
         # 50% to become land if it is surrounded by all ocean
