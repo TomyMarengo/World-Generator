@@ -41,7 +41,8 @@ class BiomeMap:
              self.PIXEL_LENGTH // 4),
             (f'Add Temperatures (ZoomX3: {self.PIXEL_LENGTH // 4})', self.add_temperatures, self.PIXEL_LENGTH // 4),
             (f'Add Islands (ZoomX3: {self.PIXEL_LENGTH // 4})', self.add_islands, self.PIXEL_LENGTH // 4),
-            (f'Change Temperatures (ZoomX3: {self.PIXEL_LENGTH // 4})', self.change_temperatures, self.PIXEL_LENGTH // 4),
+            (f'Change Temperatures (ZoomX3: {self.PIXEL_LENGTH // 4})', self.change_temperatures,
+             self.PIXEL_LENGTH // 4),
             # Add biome variants
 
             # Zoom x2
@@ -81,7 +82,8 @@ class BiomeMap:
                     for k in [i - zoom, i, i + zoom, i + zoom * 2]:
                         for m in [j - zoom, j, j + zoom, j + zoom * 2]:
                             if 0 <= k <= self.MAP_LENGTH - zoom and 0 <= m <= self.MAP_LENGTH - zoom:
-                                self.map[k: k + zoom, m: m + zoom] = (np.random.random() < self.ADD_LAND) * map_copy[i, j]
+                                self.map[k: k + zoom, m: m + zoom] = (np.random.random() < self.ADD_LAND) * map_copy[
+                                    i, j]
 
     def add_temperatures(self, zoom):
         options = [Terrain.Warm, Terrain.Cold, Terrain.Freezing]
@@ -93,20 +95,26 @@ class BiomeMap:
                     terrain = random.choices(options, probs)[0]
                     self.map[i: i + zoom, j: j + zoom] = terrain.value[0]
 
+    @staticmethod
+    def not_freezing(x):
+        return x != Terrain.Warm.value[0] and x != Terrain.Temperature.value[0]
+
+    @staticmethod
+    def not_warm(x):
+        return x != Terrain.Cold.value[0] and x != Terrain.Freezing.value[0]
+
     def change_temperatures(self, zoom):
         map_copy = np.copy(self.map)
 
         for i in range(0, self.map.shape[0], zoom):
             for j in range(0, self.map.shape[1], zoom):
                 if map_copy[i, j] == Terrain.Warm.value[0] \
-                        and not self.__verify_neighbors(map_copy, i, j, zoom, lambda x: x != Terrain.Cold.value[0] and x != Terrain.Freezing.value[0]):
+                        and not self.__verify_neighbors(map_copy, i, j, zoom, self.not_warm):
                     self.map[i: i + zoom, j: j + zoom] = Terrain.Temperature.value[0]
+
                 if map_copy[i, j] == Terrain.Freezing.value[0] \
-                        and not self.__verify_neighbors(map_copy, i, j, zoom,
-                                                        lambda x: x != Terrain.Warm.value[0] and x != Terrain.Temperature.value[0]):
+                        and not self.__verify_neighbors(map_copy, i, j, zoom, self.not_freezing):
                     self.map[i: i + zoom, j: j + zoom] = Terrain.Cold.value[0]
-
-
 
     def remove_too_much_ocean(self, zoom):
         # 50% to become land if it is surrounded by all ocean
@@ -122,7 +130,8 @@ class BiomeMap:
 
         for i in range(0, self.map.shape[0], zoom):
             for j in range(0, self.map.shape[1], zoom):
-                if map_copy[i, j] == Terrain.Ocean.value[0] and self.__verify_neighbors(map_copy, i, j, zoom, lambda x: x == 0):
+                if map_copy[i, j] == Terrain.Ocean.value[0] and self.__verify_neighbors(map_copy, i, j, zoom,
+                                                                                        lambda x: x == 0):
                     self.map[i: i + zoom, j: j + zoom] = Terrain.DeepOcean.value[0]
 
     def __verify_neighbors(self, map_copy, row, col, zoom, fun):
@@ -147,7 +156,7 @@ class BiomeMap:
         values = np.unique(self.map)
         colors = []
 
-        for i in range(max(values)+1):
+        for i in range(max(values) + 1):
             if i in values:
                 colors.append(list(Terrain)[i].value[1])
             else:
@@ -156,6 +165,6 @@ class BiomeMap:
         cmap = ListedColormap(colors)
 
         plt.title(title)
-        plt.imshow(self.map, cmap=cmap,  interpolation='nearest')
+        plt.imshow(self.map, cmap=cmap, interpolation='nearest')
         plt.axis('off')
         plt.show()
