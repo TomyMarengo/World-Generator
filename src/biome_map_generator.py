@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, Normalize
 from enum import Enum
 
+# Inspiration: https://www.youtube.com/watch?v=YyVAaJqYAfE&list=WL&index=6&ab_channel=AlanZucconi
 
 class Terrain(Enum):
     Ocean = (0, '#010070')
